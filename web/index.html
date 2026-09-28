@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Simple 存档解析 · 数据可视化</title>
+<link rel="stylesheet" href="styles/base.css">
+<link rel="stylesheet" href="styles/dashboard.css">
+<script src="js/ui/theme.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <header class="masthead"><a class="brand" href="#">Simple<span class="brand-sub">存档解析</span></a><nav aria-label="页面导航"><a href="#import">导入存档</a><a href="#records">成绩档案</a><button id="themeToggle" class="ghost" aria-label="切换日间与夜间模式">切换主题</button></nav></header>
+<section class="card import-card" id="import"><h3><span class="section-no">◇</span> 导入存档 <span class="tag">仅在浏览器本地解析</span></h3>
+    <textarea aria-label="存档码或十六进制文本" id="codeInput" placeholder="在此粘贴存档码（Base64）…"></textarea>
+    <div class="row">
+      <button id="parseBtn" class="primary">解析</button>
+      <label class="filebtn">选择文件<input type="file" id="fileInput" accept=".save,.txt,.dat" hidden></label>
+      <button id="sampleBtn" class="ghost">载入示例</button>
+      <button id="clearBtn" class="ghost">清空</button>
+    </div>
+    <div class="hint">支持：存档码（Base64 文本）/ player0.save 文件 / hex 字符串</div>
+    <div id="error" class="error" role="alert" hidden></div>
+  </section>
+
+  <section id="result" hidden>
+    <section class="card player">
+      <div class="pname" id="pName">-</div>
+      <div class="pmeta">
+        <span id="pDevice"></span>
+        <span>成绩 <b id="pCount">0</b> 条</span>
+        <span id="pUnion" class="union" title="点击显示 / 隐藏完整 ID">-</span>
+      </div>
+    </section>
+
+    <section class="kpis" id="kpis"></section><div class="section-heading"><div><p class="eyebrow">PERFORMANCE OVERVIEW</p><h2>成绩洞察</h2></div><span>基于当前存档的最佳记录</span></div><section id="insights" class="insight-grid"></section>
+
+    <section class="card">
+      <h3>总体水平 <span class="tag">平均 ACC</span></h3>
+      <div class="donutwrap">
+        <svg id="donutSvg" width="190" height="190" viewBox="0 0 190 190"></svg>
+        <div class="legend" id="donutLegend"></div>
+      </div>
+    </section>
+
+    <section class="card records-panel" id="records">
+      <h3><span class="section-no">◇</span> 成绩档案 <span class="tag">按 ACC 排名 · 点击曲绘查看大图</span></h3>
+      <div class="toolbar">
+        <input aria-label="搜索成绩" id="searchBox" placeholder="搜索曲名 / 难度…">
+        <select id="difficultyFilter" aria-label="筛选难度"><option value="">全部难度</option><option value="0">SP</option><option value="1">CM</option><option value="2">CL</option><option value="3">OL</option></select><select id="statusFilter" aria-label="筛选状态"><option value="">全部状态</option><option value="ap">All Perfect</option><option value="fc">零 Miss</option><option value="miss">存在 Miss</option></select><span id="filterCount" class="hint"></span><button id="posterBtn" class="ghost">导出成绩海报</button>
+        <button id="copyJsonBtn" class="ghost">复制 JSON</button>
+      </div>
+      <div class="scorecards" id="scorecards"></div>
+    </section>
+
+    <section class="card">
+      <h3>各谱面 ACC</h3>
+      <div class="toolbar chart-controls">
+        <label>排序条件 <select id="accSort" aria-label="各谱面 ACC 排序条件"><option value="hard">难度（同难度按 Lv）</option><option value="lv">Lv（同等级按 ACC）</option><option value="acc">ACC</option><option value="name">曲名</option></select></label>
+        <label>顺序 <select id="accDirection" aria-label="各谱面 ACC 排序方向"><option value="1">升序</option><option value="-1">降序</option></select></label>
+      </div>
+      <p class="analysis-note">难度顺序 SP → CM → CL → OL；Lv 的「+」排在同整数等级之后，未知等级置后。同难度、同 Lv 内按 ACC 降序。ACC 为原始计算值，未按难度修正。</p>
+      <div class="chartbox" id="accBox"><svg id="accChart"></svg></div>
+      <div class="legend" id="diffLegend"></div>
+    </section>
+
+    <section class="card">
+      <h3>判定构成（每个谱面）</h3>
+      <div class="toolbar chart-controls">
+        <label>排序条件 <select id="judgeSort" aria-label="判定构成排序条件"><option value="hard">难度（同难度按 Lv）</option><option value="lv">Lv（同等级按 ACC）</option><option value="acc">ACC</option><option value="name">曲名</option></select></label>
+        <label>顺序 <select id="judgeDirection" aria-label="判定构成排序方向"><option value="1">升序</option><option value="-1">降序</option></select></label>
+      </div>
+      <p class="analysis-note">与上图独立排序，标签显示难度与 Lv，方便比较相近等级的判定表现。</p>
+      <div class="chartbox" id="judgeBox"><svg id="judgeChart"></svg></div>
+      <div class="legend">
+        <span><i style="background:var(--p)"></i>Perfect</span>
+        <span><i style="background:var(--g)"></i>Good（早/晚）</span>
+        <span><i style="background:var(--b)"></i>Bad（早/晚）</span>
+        <span><i style="background:var(--m)"></i>Miss</span>
+      </div>
+    </section>
+
+    <section class="card">
+      <h3>成绩详情 <span class="tag">点击表头排序</span></h3>
+      <div class="tblwrap"><table id="detail"><thead></thead><tbody></tbody></table></div>
+    </section>
+
+    <section class="card">
+      <details>
+        <summary>高级设置 · ACC 公式参数（默认已按游戏拟合：Good=0.6，Bad=0.1）</summary>
+        <div class="settings">
+          <label>聚合方式：
+            <select id="aggSel">
+              <option value="weighted" selected>按音符数加权（推荐）</option>
+              <option value="mean">简单平均（每谱面等权）</option>
+            </select>
+          </label>
+          <label>Good 权重：<input type="range" id="wGRange" min="0" max="1" step="0.05" value="0.6"><span id="wGVal">0.60</span></label>
+          <label>Bad 权重：<input type="range" id="wBRange" min="0" max="1" step="0.05" value="0.1"><span id="wBVal">0.10</span></label>
+          <div class="hint" id="formulaHint"></div>
+        </div>
+      </details>
+    </section>
+  </section>
+
+  <footer>
+    <div>本页面为纯前端工具，所有解析均在浏览器本地完成，存档码不会上传到任何服务器。</div>
+    <div>ACC 公式为逆向拟合：<b>ACC = (Perfect + 0.6×Good + 0.1×Bad) / 音符总数</b>，仅供参考，可在上方设置中调整。</div>
+    <div>曲目 / 章节 / 谱面等级 / 曲绘数据来自游戏 1.2.0 版本资源 · 非官方工具 · 曲绘版权归游戏方及画师所有</div>
+  </footer>
+</div>
+
+<div id="lightbox" class="lightbox" hidden>
+  <div class="lb-back" id="lbBack"></div>
+  <div class="lb-body">
+    <img id="lbImg" alt="">
+    <div class="lb-caption">
+      <div>
+        <div class="lb-title" id="lbTitle"></div>
+        <div class="lb-meta" id="lbMeta"></div>
+      </div>
+      <div class="lb-actions">
+        <button id="lbPrev" class="ghost">‹ 上一张</button>
+        <button id="lbNext" class="ghost">下一张 ›</button>
+        <a id="lbOrig" class="filebtn" download>下载原图 PNG</a>
+        <button id="lbClose" class="ghost">关闭</button>
+      </div>
+    </div>
+  </div>
+</div>
+<canvas id="posterCanvas" hidden></canvas>
+
+<script src="assets/data/meta.js"></script>
+<script src="js/data.js"></script>
+<script src="js/parser/save-parser.js"></script>
+<script src="js/analysis/statistics.js"></script>
+<script src="js/analysis/insights.js"></script>
+<script src="js/ui/dashboard.js"></script>
+<script src="js/ui/insights.js"></script>
+<script src="js/ui/lightbox.js"></script>
+<script src="js/export/poster.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

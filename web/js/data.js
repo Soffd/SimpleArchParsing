@@ -1,0 +1,11 @@
+"use strict";
+const META = window.SIMPLE_META || {};
+const MUSIC_DB = META.MUSIC_DB || {};
+const CHART_DB = META.CHART_DB || {};
+const CHAPTER_CN = META.CHAPTER_CN || {};
+const SAMPLE_CODE = META.SAMPLE_CODE || '';
+const COVER_BASE = META.COVER_BASE || 'assets/covers';
+const HARD_NAMES = {0:'SP',1:'CM',2:'CL',3:'OL'};
+const CHAPTER_NAMES = {0:'Invalid',1:'Chapter1',2:'Chapter2',3:'Crystle',4:'Public',5:'Huanyun',9000:'Start',9001:'Single',9002:'AprilFool'};
+const DIFF_COLORS = {0:'#83b4b5',1:'#80aa92',2:'#aaa0c4',3:'#c791a7'};
+if (!META.MUSIC_DB) console.warn('meta.js 未加载：曲名/曲绘/等级信息将不可用');
