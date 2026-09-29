@@ -41,9 +41,9 @@ function aggAcc(scores) {
   return d ? n / d : 0;
 }
 const GRADE_COLOR = { 'P':'#7a5cff', 'S+':'#a88bfa', 'S':'#f3d935', 'A':'#f07c46', 'B':'#2ab831', 'C':'#2a6fb8', 'D':'#b82a2a', 'F':'#6c6c6c' };
-const GRADE_T = Object.assign({ P: 0.999, 'S+': 0.99, S: 0.98, A: 0.9, B: 0.8, C: 0.7, D: 0.6 }, META.GRADE_THRESHOLDS || {});
+const GRADE_T = { P: 1, 'S+': 0.99, S: 0.98, A: 0.96, B: 0.93, C: 0.9, D: 0.85 };
 function gradeOf(acc) {
-  // 游戏评级：阈值逆向推测（已用两例真实结算校准：97.75%→A、99.85%→S+）
+  // 使用未截断的游戏口径 ACC；只有完整 100% 才达到 P。
   for (const g of ['P', 'S+', 'S', 'A', 'B', 'C', 'D']) {
     if (acc >= GRADE_T[g]) return [g, GRADE_COLOR[g]];
   }

@@ -44,10 +44,13 @@ for (const [input, score, acc, grade] of [
   assert.equal(run(`fmtPct(accOf(${input}))`),acc);
   assert.equal(run(`gradeOf(gameAccOf(${input}))[0]`),grade);
 }
-for(const [threshold,grade] of [[.6,'D'],[.7,'C'],[.8,'B'],[.9,'A'],[.98,'S'],[.99,'S+'],[.999,'P']]) {
+for(const [threshold,grade,previous] of [[.85,'D','F'],[.9,'C','D'],[.93,'B','C'],[.96,'A','B'],[.98,'S','A'],[.99,'S+','S'],[1,'P','S+']]) {
   assert.equal(run(`gradeOf(${threshold})[0]`),grade);
-  assert.notEqual(run(`gradeOf(${threshold}-0.000001)[0]`),grade);
+  assert.equal(run(`gradeOf(${threshold}-0.000001)[0]`),previous);
 }
+assert.equal(run('gradeOf(0)[0]'),'F');
+assert.equal(run('gradeOf(0.999)[0]'),'S+');
+assert.equal(run('gradeOf(1-Number.EPSILON)[0]'),'S+');
 assert.equal(run('scoreOf(settlement(0,0,0,0,0,0))'),0);
 run('state.wG=0;state.wB=1');
 assert.equal(run('scoreOf(settlement(532,2,0,0,534,534))'),1098500);
