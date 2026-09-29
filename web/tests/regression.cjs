@@ -7,7 +7,7 @@ const run=code=>vm.runInContext(code,ctx);
 run('state.info=detectAndParse(textToBytes(SAMPLE_CODE))');
 assert.ok(run('state.info.scores.length')>0);
 // Bundled MockPlayer fixture: 6070 Perfect, 170 Good, 21 Bad, 6285 notes.
-assert.ok(Math.abs(run('aggAcc(state.info.scores)')-6174.1/6285)<1e-12);
+assert.ok(Math.abs(run('aggAcc(state.info.scores)')-6172/6285)<1e-12);
 assert.equal(run('chartOf(state.info.scores[0]).lv'),'5');
 assert.equal(run('JSON.stringify(parsePlayerInfo(textToBytes(hexOf(textToBytes(SAMPLE_CODE)))) )'),run('JSON.stringify(parsePlayerInfo(textToBytes(SAMPLE_CODE)))'));
 assert.throws(()=>run('detectAndParse(new Uint8Array())'));
@@ -34,3 +34,25 @@ assert.equal(run("sortedChartScores(sortFixture,'acc',1)[0].musicName"),'Liar');
 assert.equal(run("sortedChartScores(sortFixture,'acc',-1)[0].musicName"),'Truly');
 assert.equal(run('sortFixture[0].musicName'),'Liar');
 console.log('PASS: parser, ACC, metadata, filters, chart ordering (difficulty, Lv+, missing Lv, ACC directions), non-mutating sort.');
+run(`const settlement = (p,g,b,m,n,c)=>({perfect:p,earlyGood:g,lateGood:0,earlyBad:b,lateBad:0,miss:m,fullComboCount:n,maxComboCount:c});`);
+for (const [input, score, acc, grade] of [
+  ['settlement(941,30,3,7,981,266)',1004615,'97.75%','A'],
+  ['settlement(532,2,0,0,534,534)',1098500,'99.85%','S+'],
+  ['settlement(1058,11,4,2,1077,605)',1044574,'99.03%','S+']
+]) {
+  assert.equal(run(`scoreOf(${input})`),score);
+  assert.equal(run(`fmtPct(accOf(${input}))`),acc);
+  assert.equal(run(`gradeOf(gameAccOf(${input}))[0]`),grade);
+}
+for(const [threshold,grade] of [[.6,'D'],[.7,'C'],[.8,'B'],[.9,'A'],[.98,'S'],[.99,'S+'],[.999,'P']]) {
+  assert.equal(run(`gradeOf(${threshold})[0]`),grade);
+  assert.notEqual(run(`gradeOf(${threshold}-0.000001)[0]`),grade);
+}
+assert.equal(run('scoreOf(settlement(0,0,0,0,0,0))'),0);
+run('state.wG=0;state.wB=1');
+assert.equal(run('scoreOf(settlement(532,2,0,0,534,534))'),1098500);
+assert.equal(run("gradeOf(gameAccOf(settlement(532,2,0,0,534,534)))[0]"),'S+');
+run('state.wG=.6;state.wB=0');
+assert.equal(run("sortedChartScores(sortFixture,'score',-1)[0].musicName"),'Truly');
+assert.equal(run("sortedChartScores(sortFixture,'grade',-1)[0].musicName"),'Truly');
+console.log('PASS: three settlement fixtures, grade boundaries, truncated ACC, fixed score/grade weights, score/grade ordering.');

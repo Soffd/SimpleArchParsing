@@ -104,3 +104,10 @@ function resetFilters() {
     if(state.info){renderCards();renderTable();}
   };
 });
+
+['cardSort','cardDirection'].forEach(id=>{
+  document.getElementById(id).onchange=e=>{
+    state[id]=id==='cardDirection'?Number(e.target.value):e.target.value;
+    if(state.info) renderCards();
+  };
+});

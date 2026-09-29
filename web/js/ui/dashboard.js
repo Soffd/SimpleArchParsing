@@ -16,13 +16,13 @@ function renderAll() {
   renderCards();
   renderTable();
   document.getElementById('formulaHint').textContent =
-    '当前公式：ACC = (Perfect + ' + state.wG.toFixed(2) + '×Good + ' + state.wB.toFixed(2) + '×Bad) / 音符总数';
+    '当前公式：ACC = (Perfect + ' + state.wG.toFixed(2) + '×Good + ' + state.wB.toFixed(2) + '×Bad) / 判定总和（分数与评级固定采用游戏公式）';
 }
 
 function renderKpis() {
   const scores = state.info.scores;
   const acc = aggAcc(scores);
-  const g = gradeOf(acc);
+  const g = gradeOf(aggAccGame(scores));
   let fc = 0, notes = 0, bestLv = null;
   for (const s of scores) {
     if (isZeroMiss(s)) fc++;
@@ -31,10 +31,10 @@ function renderKpis() {
     if (c) { const v = lvNum(c.lv); if (bestLv === null || v > bestLv.num) bestLv = {num:v, txt:c.lv}; }
   }
   const kpis = [
-    ['平均 ACC', fmtPct(acc) + '<span class="badge" style="background:' + g[1] + '22;color:' + g[1] + '">' + g[0] + '</span>', '按 ' + (state.agg === 'weighted' ? '音符数加权' : '谱面等权') + ' · 评级为参考'],
+    ['平均 ACC', fmtPct(acc) + '<span class="badge" style="background:' + g[1] + '22;color:' + g[1] + '">' + g[0] + '</span>', '按 ' + (state.agg === 'weighted' ? '判定数加权' : '谱面等权') + ' · 评级为参考'],
     ['成绩记录', String(scores.length), '个谱面'],
     ['零 Miss 谱面', String(fc), '有判定且 Miss = 0（参考）'],
-    ['总音符数', String(notes), '用于 ACC 计算'],
+    ['总音符数', String(notes), '谱面音符总量'],
     ['最高等级', bestLv ? bestLv.txt : '-', '已游玩谱面最高难度']
   ];
   document.getElementById('kpis').innerHTML = kpis.map(k =>
@@ -48,7 +48,7 @@ function renderDonut() {
   for (const s of scores) { P += s.perfect; G += s.earlyGood + s.lateGood; B += s.earlyBad + s.lateBad; M += s.miss; }
   const total = P + G + B + M;
   const acc = aggAcc(scores);
-  const g = gradeOf(acc);
+  const g = gradeOf(aggAccGame(scores));
   const segs = [['Perfect', P, '#a292bd'], ['Good', G, '#6eaaa3'], ['Bad', B, '#c4a46b'], ['Miss', M, '#c18598']];
   const R = 74, CIRC = 2 * Math.PI * R;
   let off = 0, svg = '';
@@ -62,7 +62,7 @@ function renderDonut() {
       ' transform="rotate(-90 95 95)"><title>' + nm + ' ' + val + '</title></circle>';
     off += len;
   }
-  svg += '<text x="95" y="88" text-anchor="middle" fill="#e9edf8" font-size="26" font-weight="700">' + (acc * 100).toFixed(2) + '%</text>';
+  svg += '<text x="95" y="88" text-anchor="middle" fill="#e9edf8" font-size="26" font-weight="700">' + fmtPct(acc) + '</text>';
   svg += '<text x="95" y="110" text-anchor="middle" fill="#8f97b0" font-size="12">平均 ACC</text>';
   svg += '<text x="95" y="132" text-anchor="middle" fill="' + g[1] + '" font-size="15" font-weight="700">' + g[0] + '</text>';
   document.getElementById('donutSvg').innerHTML = svg;
@@ -151,7 +151,7 @@ function renderJudgeChart() {
 
 function renderCards() {
   const el = document.getElementById('scorecards');
-  const scores = filteredScores().slice().sort((a, b) => accOf(b) - accOf(a));
+  const scores = sortedChartScores(filteredScores(), state.cardSort, state.cardDirection);
   document.getElementById('filterCount').textContent = scores.length + ' / ' + state.info.scores.length + ' 谱面';
   if (!scores.length) { el.innerHTML = '<div class="hint">' + (state.info.scores.length ? '没有匹配的成绩' : '没有成绩数据') + '</div>'; return; }
   el.innerHTML = scores.map((s, i) => {
@@ -162,15 +162,16 @@ function renderCards() {
     const seg = (v, col) => v ? '<i style="width:' + (v / total * 100) + '%;background:' + col + '"></i>' : '';
     const bar = seg(s.perfect, '#a292bd') + seg(s.earlyGood + s.lateGood, '#6eaaa3') +
                 seg(s.earlyBad + s.lateBad, '#c4a46b') + seg(s.miss, '#c18598');
-    return '<div class="scorecard">' +
+    return '<div class="scorecard" style="--diff:' + color + '">' +
       '<div class="sc-img">' +
       (cover ? '<img src="' + cover + '" loading="lazy" alt="" data-lb="' + esc(s.musicName) + '|' + s.hard + '" onerror="this.style.display=&quot;none&quot;">' : '') +
       (isZeroMiss(s) ? '<span class="sc-fc">' + (isAP(s) ? 'AP' : '零 Miss') + '</span>' : '') +
       '<span class="sc-lv" style="color:' + color + '">' + (HARD_NAMES[s.hard] || s.hard) + (c ? ' Lv' + esc(c.lv) : '') + '</span>' +
       '</div>' +
-      '<div class="sc-body">' + '<div class="sc-rank">#' + String(i+1).padStart(2,'0') + ' / ACC RECORD</div>' +
+      '<div class="sc-body">' + '<div class="sc-rank">#' + String(i+1).padStart(2,'0') + ' / RECORD</div>' +
       '<div class="sc-song"><span class="song-diamond" aria-hidden="true"></span><div><div class="sc-title" title="' + esc(titleOf(s)) + '">' + esc(titleOf(s)) + '</div>' +
       '<div class="sc-sub">' + esc((MUSIC_DB[s.musicName] || {}).composer || chapterOf(s)) + '</div></div></div>' +
+      '<div class="sc-score"><div><small>SCORE</small><strong>' + scoreOf(s).toLocaleString('en-US') + '</strong></div>' + rankImg(gradeOf(gameAccOf(s))[0], 48) + '</div>' +
       '<div class="sc-row"><span class="diffbadge" style="color:' + color + ';border-color:' + color + '55;background:' + color + '18">' + (HARD_NAMES[s.hard] || s.hard) + (c ? ' Lv' + esc(c.lv) : '') + '</span>' +
       '<span class="sc-acc">' + fmtPct(accOf(s)) + '</span></div>' +
       '<div class="sc-bar">' + bar + '</div>' + '<div class="sc-detail">P ' + s.perfect + ' · G ' + (s.earlyGood+s.lateGood) + ' · B ' + (s.earlyBad+s.lateBad) + ' · M ' + s.miss + '</div>' +
@@ -180,7 +181,7 @@ function renderCards() {
 
 function renderTable() {
   const heads = [
-    ['name', '曲目'], ['chapter', '章节'], ['hard', '难度'], ['lv', 'Lv'], ['acc', 'ACC'],
+    ['name', '曲目'], ['chapter', '章节'], ['hard', '难度'], ['lv', 'Lv'], ['acc', 'ACC'], ['score', '分数'], ['grade', '评级'],
     ['perfect', 'Perfect'], ['good', 'Good'], ['bad', 'Bad'], ['miss', 'Miss'], ['maxCombo', 'MaxCombo'], ['fc', '状态']
   ];
   const scores = filteredScores().slice();
@@ -193,6 +194,8 @@ function renderTable() {
       case 'hard': return s.hard;
       case 'lv': return c ? lvNum(c.lv) : -1;
       case 'acc': return accOf(s);
+      case 'score': return scoreOf(s);
+      case 'grade': return gradeValue(s);
       case 'good': return s.earlyGood + s.lateGood;
       case 'bad': return s.earlyBad + s.lateBad;
       case 'maxCombo': return s.maxComboCount;
@@ -217,6 +220,7 @@ function renderTable() {
       '<td style="color:' + color + '">' + (HARD_NAMES[s.hard] || s.hard) + '</td>' +
       '<td>' + (c ? esc(c.lv) : '-') + '</td>' +
       '<td><b>' + fmtPct(accOf(s)) + '</b></td>' +
+      '<td>' + scoreOf(s).toLocaleString('en-US') + '</td><td>' + rankImg(gradeOf(gameAccOf(s))[0], 28) + '</td>' +
       '<td>' + s.perfect + '</td>' +
       '<td title="早' + s.earlyGood + ' / 晚' + s.lateGood + '">' + (s.earlyGood + s.lateGood) + '</td>' +
       '<td title="早' + s.earlyBad + ' / 晚' + s.lateBad + '">' + (s.earlyBad + s.lateBad) + '</td>' +

@@ -44,10 +44,10 @@
     </section>
 
     <section class="card records-panel" id="records">
-      <h3><span class="section-no">◇</span> 成绩档案 <span class="tag">按 ACC 排名 · 点击曲绘查看大图</span></h3>
+      <h3><span class="section-no">◇</span> 成绩档案 <span class="tag">可排序 · 点击曲绘查看大图</span></h3>
       <div class="toolbar">
         <input aria-label="搜索成绩" id="searchBox" placeholder="搜索曲名 / 难度…">
-        <select id="difficultyFilter" aria-label="筛选难度"><option value="">全部难度</option><option value="0">SP</option><option value="1">CM</option><option value="2">CL</option><option value="3">OL</option></select><select id="statusFilter" aria-label="筛选状态"><option value="">全部状态</option><option value="ap">All Perfect</option><option value="fc">零 Miss</option><option value="miss">存在 Miss</option></select><span id="filterCount" class="hint"></span><button id="posterBtn" class="ghost">导出成绩海报</button>
+        <select id="difficultyFilter" aria-label="筛选难度"><option value="">全部难度</option><option value="0">SP</option><option value="1">CM</option><option value="2">CL</option><option value="3">OL</option></select><select id="statusFilter" aria-label="筛选状态"><option value="">全部状态</option><option value="ap">All Perfect</option><option value="fc">零 Miss</option><option value="miss">存在 Miss</option></select><select id="cardSort" aria-label="成绩档案排序"><option value="acc">按 ACC</option><option value="score">按分数</option><option value="grade">按评级</option><option value="hard">按难度</option><option value="lv">按 Lv</option></select><select id="cardDirection" aria-label="成绩档案排序方向"><option value="-1">降序</option><option value="1">升序</option></select><span id="filterCount" class="hint"></span><button id="posterBtn" class="ghost">导出成绩海报</button>
         <button id="copyJsonBtn" class="ghost">复制 JSON</button>
       </div>
       <div class="scorecards" id="scorecards"></div>
@@ -56,7 +56,7 @@
     <section class="card">
       <h3>各谱面 ACC</h3>
       <div class="toolbar chart-controls">
-        <label>排序条件 <select id="accSort" aria-label="各谱面 ACC 排序条件"><option value="hard">难度（同难度按 Lv）</option><option value="lv">Lv（同等级按 ACC）</option><option value="acc">ACC</option><option value="name">曲名</option></select></label>
+        <label>排序条件 <select id="accSort" aria-label="各谱面 ACC 排序条件"><option value="hard">难度（同难度按 Lv）</option><option value="lv">Lv（同等级按 ACC）</option><option value="acc">ACC</option><option value="score">分数</option><option value="grade">评级</option><option value="name">曲名</option></select></label>
         <label>顺序 <select id="accDirection" aria-label="各谱面 ACC 排序方向"><option value="1">升序</option><option value="-1">降序</option></select></label>
       </div>
       <p class="analysis-note">难度顺序 SP → CM → CL → OL；Lv 的「+」排在同整数等级之后，未知等级置后。同难度、同 Lv 内按 ACC 降序。ACC 为原始计算值，未按难度修正。</p>
@@ -67,7 +67,7 @@
     <section class="card">
       <h3>判定构成（每个谱面）</h3>
       <div class="toolbar chart-controls">
-        <label>排序条件 <select id="judgeSort" aria-label="判定构成排序条件"><option value="hard">难度（同难度按 Lv）</option><option value="lv">Lv（同等级按 ACC）</option><option value="acc">ACC</option><option value="name">曲名</option></select></label>
+        <label>排序条件 <select id="judgeSort" aria-label="判定构成排序条件"><option value="hard">难度（同难度按 Lv）</option><option value="lv">Lv（同等级按 ACC）</option><option value="acc">ACC</option><option value="score">分数</option><option value="grade">评级</option><option value="name">曲名</option></select></label>
         <label>顺序 <select id="judgeDirection" aria-label="判定构成排序方向"><option value="1">升序</option><option value="-1">降序</option></select></label>
       </div>
       <p class="analysis-note">与上图独立排序，标签显示难度与 Lv，方便比较相近等级的判定表现。</p>
@@ -87,16 +87,16 @@
 
     <section class="card">
       <details>
-        <summary>高级设置 · ACC 公式参数（默认已按游戏拟合：Good=0.6，Bad=0.1）</summary>
+        <summary>高级设置 · ACC 公式参数（默认已按游戏拟合：Good=0.6，Bad=0）</summary>
         <div class="settings">
           <label>聚合方式：
             <select id="aggSel">
-              <option value="weighted" selected>按音符数加权（推荐）</option>
+              <option value="weighted" selected>按判定数加权（推荐）</option>
               <option value="mean">简单平均（每谱面等权）</option>
             </select>
           </label>
           <label>Good 权重：<input type="range" id="wGRange" min="0" max="1" step="0.05" value="0.6"><span id="wGVal">0.60</span></label>
-          <label>Bad 权重：<input type="range" id="wBRange" min="0" max="1" step="0.05" value="0.1"><span id="wBVal">0.10</span></label>
+          <label>Bad 权重：<input type="range" id="wBRange" min="0" max="1" step="0.05" value="0"><span id="wBVal">0.00</span></label>
           <div class="hint" id="formulaHint"></div>
         </div>
       </details>
@@ -104,8 +104,9 @@
   </section>
 
   <footer>
+    <div>SCORE = ⌊(P + 0.6G) × 10000 / 音符总数⌋ × 100 + ⌊最大连击 × 100000 / 音符总数⌋。分数由判定推算；评级阈值为逆向推测：D≥60%、C≥70%、B≥80%、A≥90%、S≥98%、S+≥99%、P≥99.9%。</div>
     <div>本页面为纯前端工具，所有解析均在浏览器本地完成，存档码不会上传到任何服务器。</div>
-    <div>ACC 公式为逆向拟合：<b>ACC = (Perfect + 0.6×Good + 0.1×Bad) / 音符总数</b>，仅供参考，可在上方设置中调整。</div>
+    <div>ACC 公式为逆向拟合：<b>ACC = (Perfect + 0.6×Good) / 判定总和</b>，显示截断到两位小数；自定义权重不影响分数和评级。</div>
     <div>曲目 / 章节 / 谱面等级 / 曲绘数据来自游戏 1.2.0 版本资源 · 非官方工具 · 曲绘版权归游戏方及画师所有</div>
   </footer>
 </div>

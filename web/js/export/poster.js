@@ -30,7 +30,29 @@ async function exportPoster() {
   if (!ctx) { alert('当前环境不支持 Canvas 导出'); return; }
   const scores = state.info.scores.slice().sort((a, b) => accOf(b) - accOf(a));
   if (!scores.length) { alert('没有成绩数据'); return; }
-  const W = 1200, headH = 268, rowH = 126, footH = 64;
+  const allAcc = aggAcc(scores);
+  const gr = gradeOf(aggAccGame(scores));
+  const grades = [...new Set([gr[0], ...scores.map(s => gradeOf(gameAccOf(s))[0])])];
+  const rankImages = Object.fromEntries(await Promise.all(grades.map(async grade =>
+    [grade, await loadImg(RANK_BASE + '/ScoreLevel_' + gradeKey(grade) + '.png').catch(() => null)]
+  )));
+  // Contain the original transparent artwork without cropping or stretching it.
+  const drawRank = (grade, x, y, width, height) => {
+    const im = rankImages[grade];
+    ctx.save();
+    if (im) {
+      const scale = Math.min(width / im.width, height / im.height);
+      const w = im.width * scale, h = im.height * scale;
+      ctx.drawImage(im, x + (width - w) / 2, y + (height - h) / 2, w, h);
+    } else {
+      ctx.fillStyle = GRADE_COLOR[grade];
+      ctx.font = '500 ' + height + 'px system-ui, sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(grade, x + width / 2, y + height / 2, width);
+    }
+    ctx.restore();
+  };
+  const W = 1200, headH = 268, rowH = 170, footH = 64;
   const colors = getComputedStyle(document.documentElement);
   const ink=colors.getPropertyValue('--txt').trim(), muted=colors.getPropertyValue('--dim').trim(), surface=colors.getPropertyValue('--card').trim();
   const H = headH + Math.ceil(scores.length / 3) * rowH + footH;
@@ -40,21 +62,29 @@ async function exportPoster() {
   g.addColorStop(0, surface); g.addColorStop(1, surface);
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, headH);
   ctx.fillStyle = colors.getPropertyValue('--teal').trim();
-  ctx.fillRect(56, 196, 888, 2);
+  ctx.fillRect(56, 196, W - 112, 2);
   ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
   ctx.fillStyle = ink; ctx.font = '400 36px SimSun, serif';
   ctx.fillText('Simple · 成绩单', 56, 72);
   ctx.fillStyle = ink; ctx.font = '500 22px system-ui, sans-serif';
-  ctx.fillText((state.info.playerName || 'Player') + (state.info.deviceInfo ? '  ·  ' + state.info.deviceInfo : ''), 56, 112);
+  ctx.fillText((state.info.playerName || 'Player') + (state.info.deviceInfo ? '  ·  ' + state.info.deviceInfo : ''), 56, 112, 650);
   ctx.fillStyle = muted; ctx.font = '14px system-ui, sans-serif';
   ctx.fillText('生成于 ' + new Date().toLocaleString() + ' · 共 ' + scores.length + ' 个谱面成绩', 56, 150);
-  const allAcc = aggAcc(scores);
-  const gr = gradeOf(allAcc);
+  // Two aligned columns: a prominent ACC value and the game's rank artwork.
   ctx.textAlign = 'right';
-  ctx.fillStyle = colors.getPropertyValue('--acc').trim(); ctx.font = '300 62px system-ui, sans-serif';
-  ctx.fillText((allAcc * 100).toFixed(2) + '%', W - 56, 96);
-  ctx.fillStyle = muted; ctx.font = '16px system-ui, sans-serif';
-  ctx.fillText('平均 ACC · 评级 ' + gr[0], W - 56, 126);
+  ctx.fillStyle = muted; ctx.font = '14px system-ui, sans-serif';
+  ctx.fillText('平均 ACC', 1012, 55);
+  ctx.fillStyle = ink; ctx.font = '300 58px system-ui, sans-serif';
+  ctx.fillText(fmtPct(allAcc).slice(0, -1), 981, 116);
+  ctx.fillStyle = muted; ctx.font = '300 25px system-ui, sans-serif';
+  ctx.fillText('%', 1012, 116);
+  ctx.save(); ctx.globalAlpha = 0.25;
+  ctx.fillStyle = muted; ctx.fillRect(1036, 44, 1, 102); ctx.restore();
+  ctx.textAlign = 'center'; ctx.fillStyle = muted; ctx.font = '14px system-ui, sans-serif';
+  ctx.fillText('评级', 1098, 55);
+  drawRank(gr[0], 1058, 71, 80, 72);
+  ctx.textAlign = 'right'; ctx.fillStyle = muted; ctx.font = '12px system-ui, sans-serif';
+  ctx.fillText(state.agg === 'weighted' ? '按判定数加权' : '各谱面等权', 1012, 146);
   ctx.textAlign = 'left';
   let fc = 0, notes = 0;
   for (const s of scores) { if (isZeroMiss(s)) fc++; notes += den(s); }
@@ -97,14 +127,19 @@ async function exportPoster() {
     }
     ctx.textAlign = 'right';
     ctx.fillStyle = ink; ctx.font = '700 24px ui-monospace, Consolas, monospace';
-    ctx.fillText(fmtPct(accOf(s)), 382, y + 80);
+    ctx.fillText(scoreOf(s).toLocaleString('en-US'), 382, y + 105);
+    ctx.font = '14px system-ui, sans-serif';
+    ctx.fillText('ACC ' + fmtPct(accOf(s)), 382, y + 130);
+    const rank = gradeOf(gameAccOf(s));
+    drawRank(rank[0], 34, y + 111, 62, 38);
+    ctx.textAlign = 'right';
     ctx.fillStyle = muted; ctx.font = '10px ui-monospace, Consolas, monospace';
-    ctx.fillText('P' + s.perfect + '  G' + (s.earlyGood + s.lateGood) + '  B' + (s.earlyBad + s.lateBad) + '  M' + s.miss, 382, y + 104);
+    ctx.fillText('P' + s.perfect + '  G' + (s.earlyGood + s.lateGood) + '  B' + (s.earlyBad + s.lateBad) + '  M' + s.miss, 382, y + 152);
     ctx.restore();
   });
   ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = muted; ctx.font = '14px system-ui, sans-serif';
-  ctx.fillText('non-official tool · save code by Simple players', W / 2, H - 26);
+  ctx.fillText('by SimpleArchParsing', W / 2, H - 26);
   try {
     const url = canvas.toDataURL('image/png');
     const a = document.createElement('a');
