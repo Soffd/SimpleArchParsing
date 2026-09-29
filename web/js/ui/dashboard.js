@@ -214,7 +214,7 @@ function renderTable() {
     return '<tr>' +
       '<td class="sname"><div class="sname-in">' +
       (cover ? '<img class="thumb" src="' + cover + '" loading="lazy" alt="" data-lb="' + esc(s.musicName) + '|' + s.hard + '" onerror="this.style.display=&quot;none&quot;">' : '<div class="thumb"></div>') +
-      '<div><div class="t1">' + esc(titleOf(s)) + '</div><div class="t2">' + esc(s.musicName) + '</div></div>' +
+      '<div><div class="t1">' + esc(titleOf(s)) + '</div><div class="t2">' + esc((MUSIC_DB[s.musicName] || {}).composer || '曲师未知') + '</div></div>' +
       '</div></td>' +
       '<td>' + esc(chapterOf(s)) + '</td>' +
       '<td style="color:' + color + '">' + (HARD_NAMES[s.hard] || s.hard) + '</td>' +

@@ -117,7 +117,7 @@ async function exportPoster() {
     ctx.fillText(titleOf(s), 140, y + 30, 240);
     const c = chartOf(s);
     ctx.fillStyle = muted; ctx.font = '15px system-ui, sans-serif';
-    ctx.fillText(s.musicName + ' · ' + chapterOf(s), 140, y + 51, 230);
+    ctx.fillText((MUSIC_DB[s.musicName] || {}).composer || '曲师未知', 140, y + 51, 230);
     const color = DIFF_COLORS[s.hard] || '#8f97b0';
     ctx.fillStyle = color; ctx.font = '700 15px system-ui, sans-serif';
     ctx.fillText((HARD_NAMES[s.hard] || s.hard) + (c ? ' Lv' + c.lv : ''), 140, y + 72);
