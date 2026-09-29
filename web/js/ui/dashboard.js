@@ -16,7 +16,7 @@ function renderAll() {
   renderCards();
   renderTable();
   document.getElementById('formulaHint').textContent =
-    '当前公式：ACC = (Perfect + ' + state.wG.toFixed(2) + '×Good + ' + state.wB.toFixed(2) + '×Bad) / 判定总和（分数与评级固定采用游戏公式）';
+    '单谱面分析：ACC = (Perfect + ' + state.wG.toFixed(2) + '×Good + ' + state.wB.toFixed(2) + '×Bad) / 判定总和。游戏总 ACC 固定使用 Good=0.6、Bad=0，先截断单曲 ACC，再按 SP×1 / CM×2 / CL×4 / OL×8 加权；分数与评级固定采用游戏口径。';
 }
 
 function renderKpis() {
@@ -31,7 +31,7 @@ function renderKpis() {
     if (c) { const v = lvNum(c.lv); if (bestLv === null || v > bestLv.num) bestLv = {num:v, txt:c.lv}; }
   }
   const kpis = [
-    ['平均 ACC', fmtPct(acc) + '<span class="badge" style="background:' + g[1] + '22;color:' + g[1] + '">' + g[0] + '</span>', '按 ' + (state.agg === 'weighted' ? '判定数加权' : '谱面等权') + ' · 评级为参考'],
+    ['平均 ACC', fmtAggPct(acc) + '<span class="badge" style="background:' + g[1] + '22;color:' + g[1] + '">' + g[0] + '</span>', aggLabel() + ' · 评级按游戏总 ACC'],
     ['成绩记录', String(scores.length), '个谱面'],
     ['零 Miss 谱面', String(fc), '有判定且 Miss = 0（参考）'],
     ['总音符数', String(notes), '谱面音符总量'],
@@ -62,7 +62,7 @@ function renderDonut() {
       ' transform="rotate(-90 95 95)"><title>' + nm + ' ' + val + '</title></circle>';
     off += len;
   }
-  svg += '<text x="95" y="88" text-anchor="middle" fill="#e9edf8" font-size="26" font-weight="700">' + fmtPct(acc) + '</text>';
+  svg += '<text x="95" y="88" text-anchor="middle" fill="#e9edf8" font-size="26" font-weight="700">' + fmtAggPct(acc) + '</text>';
   svg += '<text x="95" y="110" text-anchor="middle" fill="#8f97b0" font-size="12">平均 ACC</text>';
   svg += '<text x="95" y="132" text-anchor="middle" fill="' + g[1] + '" font-size="15" font-weight="700">' + g[0] + '</text>';
   document.getElementById('donutSvg').innerHTML = svg;

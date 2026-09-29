@@ -75,7 +75,7 @@ async function exportPoster() {
   ctx.fillStyle = muted; ctx.font = '14px system-ui, sans-serif';
   ctx.fillText('平均 ACC', 1012, 55);
   ctx.fillStyle = ink; ctx.font = '300 58px system-ui, sans-serif';
-  ctx.fillText(fmtPct(allAcc).slice(0, -1), 981, 116);
+  ctx.fillText(fmtAggPct(allAcc).slice(0, -1), 981, 116);
   ctx.fillStyle = muted; ctx.font = '300 25px system-ui, sans-serif';
   ctx.fillText('%', 1012, 116);
   ctx.save(); ctx.globalAlpha = 0.25;
@@ -84,7 +84,7 @@ async function exportPoster() {
   ctx.fillText('评级', 1098, 55);
   drawRank(gr[0], 1058, 71, 80, 72);
   ctx.textAlign = 'right'; ctx.fillStyle = muted; ctx.font = '12px system-ui, sans-serif';
-  ctx.fillText(state.agg === 'weighted' ? '按判定数加权' : '各谱面等权', 1012, 146);
+  ctx.fillText(aggLabel(), 1012, 146, 280);
   ctx.textAlign = 'left';
   let fc = 0, notes = 0;
   for (const s of scores) { if (isZeroMiss(s)) fc++; notes += den(s); }

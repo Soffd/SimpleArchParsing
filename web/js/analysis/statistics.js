@@ -1,5 +1,5 @@
 // ======== 计算 ========
-const state = { info:null, agg:'weighted', wG:0.6, wB:0, sortKey:'acc', sortDir:-1, unionShown:false,
+const state = { info:null, agg:'game', wG:0.6, wB:0, sortKey:'acc', sortDir:-1, unionShown:false,
                 difficulty:'', status:'', filter:'', lbList:[], lbIndex:0,
                 cardSort:'acc', cardDirection:-1, accSort:'hard', accDirection:1, judgeSort:'hard', judgeDirection:1 };
 
@@ -31,6 +31,7 @@ function noteDen(s) {
 function num(s) { return s.perfect + state.wG * (s.earlyGood + s.lateGood) + state.wB * (s.earlyBad + s.lateBad); }
 function accOf(s) { const d = accDen(s); return d ? num(s) / d : 0; }
 function aggAcc(scores) {
+  if (state.agg === 'game') return aggAccGame(scores);
   if (!scores.length) return 0;
   if (state.agg === 'mean') {
     let t = 0; for (const s of scores) t += accOf(s);
@@ -66,13 +67,28 @@ function gameAccOf(s) {
   return (s.perfect + 0.6 * (s.earlyGood + s.lateGood)) / n;
 }
 function aggAccGame(scores) {
-  let n = 0, d = 0;
+  // Simple 1.2.0: ScoreManager.QueryAverageAcc / TryReplaceBestScore.
+  // Best integer ACC per chapter/song/difficulty, then float32 weighted average.
+  const best = new Map();
   for (const s of scores) {
-    d += accDen(s);
-    n += s.perfect + 0.6 * (s.earlyGood + s.lateGood);
+    const weight = [1, 2, 4, 8][s.hard];
+    if (!weight) continue;
+    const d = accDen(s);
+    const units = d ? Math.floor((s.perfect * 10 + (s.earlyGood + s.lateGood) * 6) * 1000 / d) : 10000;
+    const key = JSON.stringify([s.chapter, s.musicName, s.hard]);
+    if (!best.has(key) || units > best.get(key).units) best.set(key, {units, weight});
   }
-  return d ? n / d : 0;
+  let total = 0, weights = 0;
+  for (const {units, weight} of best.values()) {
+    total = Math.fround(total + Math.fround(Math.fround(units / 10000) * weight));
+    weights += weight;
+  }
+  return weights ? Math.fround(total / weights) : 0;
 }
+function aggLabel() {
+  return state.agg === 'game' ? '游戏口径 · 难度权重 1 / 2 / 4 / 8' : state.agg === 'weighted' ? '按判定数加权（分析）' : '各谱面等权（分析）';
+}
+function fmtAggPct(x) { return state.agg === 'game' ? (x * 100).toFixed(2) + '%' : fmtPct(x); }
 function gradeKey(g) { return g === 'S+' ? 'SP' : g; }
 function rankImg(grade, h) {
   return '<span class="rk"><img style="height:' + h + 'px" src="' + RANK_BASE + '/ScoreLevel_' + gradeKey(grade) + '.png" alt="' + grade + '" onerror="this.parentNode.textContent=this.alt"></span>';

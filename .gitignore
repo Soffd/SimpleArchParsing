@@ -1,3 +1,4 @@
 # Local reference fixtures and extracted test assets
 /save_parser_test/
 /web/tests/*.log
+/*.apk

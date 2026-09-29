@@ -91,7 +91,8 @@
         <div class="settings">
           <label>聚合方式：
             <select id="aggSel">
-              <option value="weighted" selected>按判定数加权（推荐）</option>
+              <option value="game" selected>游戏口径（SP×1 / CM×2 / CL×4 / OL×8）</option>
+              <option value="weighted">按判定数加权（分析）</option>
               <option value="mean">简单平均（每谱面等权）</option>
             </select>
           </label>
@@ -106,7 +107,7 @@
   <footer>
     <div>SCORE = ⌊(P + 0.6G) × 10000 / 音符总数⌋ × 100 + ⌊最大连击 × 100000 / 音符总数⌋。分数由判定推算；评级：F＜85%、D [85%, 90%)、C [90%, 93%)、B [93%, 96%)、A [96%, 98%)、S [98%, 99%)、S+ [99%, 100%)、P＝100%。</div>
     <div>本页面为纯前端工具，所有解析均在浏览器本地完成，存档码不会上传到任何服务器。</div>
-    <div>ACC 公式为逆向拟合：<b>ACC = (Perfect + 0.6×Good) / 判定总和</b>，显示截断到两位小数；自定义权重不影响分数和评级。</div>
+    <div>单谱面 ACC = (Perfect + 0.6×Good) / 判定总和，显示截断到两位小数。游戏总 ACC：各谱面最佳 ACC 截断后按 SP×1 / CM×2 / CL×4 / OL×8 加权，百分比四舍五入到两位小数。已核对 1.2.0 APK；自定义权重不影响游戏总 ACC、分数和评级。</div>
     <div>曲目 / 章节 / 谱面等级 / 曲绘数据来自游戏 1.2.0 版本资源 · 非官方工具 · 曲绘版权归游戏方及画师所有</div>
   </footer>
 </div>

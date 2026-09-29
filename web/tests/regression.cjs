@@ -6,6 +6,9 @@ for(const file of ['assets/data/meta.js','js/data.js','js/parser/save-parser.js'
 const run=code=>vm.runInContext(code,ctx);
 run('state.info=detectAndParse(textToBytes(SAMPLE_CODE))');
 assert.ok(run('state.info.scores.length')>0);
+assert.equal(run('state.agg'),'game');
+assert.equal(run('aggAcc(state.info.scores)'),run('aggAccGame(state.info.scores)'));
+run("state.agg='weighted'");
 // Bundled MockPlayer fixture: 6070 Perfect, 170 Good, 21 Bad, 6285 notes.
 assert.ok(Math.abs(run('aggAcc(state.info.scores)')-6172/6285)<1e-12);
 assert.equal(run('chartOf(state.info.scores[0]).lv'),'5');
@@ -59,3 +62,24 @@ run('state.wG=.6;state.wB=0');
 assert.equal(run("sortedChartScores(sortFixture,'score',-1)[0].musicName"),'Truly');
 assert.equal(run("sortedChartScores(sortFixture,'grade',-1)[0].musicName"),'Truly');
 console.log('PASS: three settlement fixtures, grade boundaries, truncated ACC, fixed score/grade weights, score/grade ordering.');
+
+// Anonymized judgment counts from the reported 1.2.0 save; no player identifiers.
+const aggregateFixture=JSON.parse(fs.readFileSync(path.join(__dirname,'fixtures/aggregate-1.2.0.json'),'utf8'));
+ctx.aggregateFixture=aggregateFixture;
+run("state.agg='game'");
+assert.equal(run('fmtAggPct(aggAcc(aggregateFixture))'),'94.61%');
+assert.ok(Math.abs(run('aggAccGame(aggregateFixture)')-0.946073)<0.000001);
+run('state.wG=0;state.wB=1');
+assert.equal(run('fmtAggPct(aggAcc(aggregateFixture))'),'94.61%');
+run("state.wG=.6;state.wB=0;state.agg='weighted'");
+assert.equal(run('fmtAggPct(aggAcc(aggregateFixture))'),'93.35%');
+run("state.agg='mean'");
+assert.equal(run('fmtAggPct(aggAcc(aggregateFixture))'),'95.46%');
+run("state.agg='game'");
+// Best ACC per chart: worse duplicates must not reduce the profile result.
+assert.equal(run('aggAccGame([...aggregateFixture,{...aggregateFixture[0],perfect:0}])'),run('aggAccGame(aggregateFixture)'));
+assert.equal(run('aggAccGame([...aggregateFixture,{...aggregateFixture[0],hard:9}])'),run('aggAccGame(aggregateFixture)'));
+assert.equal(run('aggAccGame([])'),0);
+assert.equal(run('aggAccGame([{...parseSongScore(new Uint8Array()),musicName:"empty"}])'),1);
+assert.equal(run('fmtAggPct(aggAccGame([{...settlement(100,0,0,0,100,100),hard:0},{...settlement(0,0,0,100,100,0),hard:3}]))'),'11.11%');
+console.log('PASS: game difficulty weights, per-chart truncation, 94.61% reported sample, duplicate charts, empty input, independent analysis modes.');
